@@ -1,0 +1,30 @@
+# 미디어 도구
+pygame>=2.1.0
+natsort>=8.0.0
+pytube==12.1.2
+SpeechRecognition>=3.8.1
+pydub>=0.25.1
+whisper>=1.0.0
+openai-whisper
+yt-dlp>=2023.3.4
+mutagen>=1.45.1
+
+# 데이터 도구
+requests>=2.28.2
+beautifulsoup4>=4.11.2
+schedule>=1.1.0
+textblob>=0.17.1
+
+# 음악 도구
+music21>=8.1.0
+
+# 유틸리티
+nltk>=3.8.1
+psutil>=5.9.0
+
+# 추가된 패키지
+youtube-transcript-api>=0.6.1
+pyperclip>=1.8.2
+
+# GUI 도구 (tkinter는 Python 기본 포함)
+Pillow>=9.0.0 

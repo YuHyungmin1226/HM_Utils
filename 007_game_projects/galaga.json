@@ -1,0 +1,28 @@
+{
+  "enemy": {
+    "base_cols": 8,
+    "max_cols": 12,
+    "base_rows": 3,
+    "max_rows": 5,
+    "boss_hp": 3,
+    "mid_hp": 2,
+    "basic_hp": 1,
+    "boss_score": 300,
+    "mid_score": 150,
+    "basic_score": 100
+  },
+  "item": {
+    "drop_rate": 0.2
+  },
+  "difficulty": {
+    "dive_speed": 0.05,
+    "dive_speed_per_wave": 0.003,
+    "dive_cooldown": 800,
+    "dive_cooldown_per_wave": 20,
+    "tractor_cooldown": 1200,
+    "tractor_cooldown_per_wave": 30,
+    "missile_base_chance": 0.005,
+    "missile_per_wave": 0.001,
+    "max_missiles": 8
+  }
+} 
