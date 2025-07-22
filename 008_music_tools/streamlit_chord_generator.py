@@ -490,7 +490,7 @@ def create_musicxml_download(score, filename):
 # 메인 앱
 def main():
     # 헤더
-    st.markdown('<h1 class="main-header">🎵 AI 코드 진행 생성기</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🎵 코드 진행 생성기</h1>', unsafe_allow_html=True)
     st.info("🎼 코드 진행을 자동으로 생성해드립니다.")
     
     # 사이드바 설정
@@ -599,7 +599,7 @@ def main():
                         score = stream.Score()
                         score.metadata = metadata.Metadata()
                         score.metadata.title = f"{settings['tonic']} {settings['mode'].capitalize()} 코드 진행"
-                        score.metadata.composer = "AI 코드 진행 생성기 (Streamlit)"
+                        score.metadata.composer = "코드 진행 생성기 (Streamlit)"
                         
                         # 템포 설정
                         tempo_marking = tempo.TempoIndication(number=120)
@@ -656,7 +656,7 @@ def main():
     st.markdown("---")
     st.markdown("""
     <div style='text-align: center; color: #666; margin-top: 2rem;'>
-        🎵 AI 코드 진행 생성기 | Made by YHM using Streamlit & Music21
+        🎵 코드 진행 생성기 | Made by YHM using Streamlit & Music21
     </div>
     """, unsafe_allow_html=True)
 
