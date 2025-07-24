@@ -1,13 +1,31 @@
 import sys
 import sqlite3
 from datetime import datetime
+import csv
+import re
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-    QPushButton, QTableWidget, QTableWidgetItem, QGroupBox, QHeaderView, QMessageBox
+    QPushButton, QTableWidget, QTableWidgetItem, QGroupBox, QHeaderView, QMessageBox,
+    QMenuBar, QMenu, QAction, QFileDialog
 )
 
-from PyQt5.QtWidgets import QMenuBar, QMenu, QAction, QFileDialog
-import csv
+# 상수 정의
+DB_FILE = 'student.db'
+STUDENT_CSV_HEADER = ["학번", "이름", "등록일", "최근평가일"]
+EVAL_CSV_HEADER = ["학번", "이름", "과목", "점수", "평가일", "비고"]
+
+# 날짜 검증 함수
+def is_valid_date(date_str):
+    if not date_str:
+        return False
+    pattern = r'^\d{4}-\d{2}-\d{2}$'
+    if not re.match(pattern, date_str):
+        return False
+    try:
+        datetime.strptime(date_str, '%Y-%m-%d')
+        return True
+    except ValueError:
+        return False
 
 class StudentDatabase(QWidget):
     def __init__(self):
@@ -121,70 +139,76 @@ class StudentDatabase(QWidget):
         self.eval_delete_btn.clicked.connect(self.delete_evaluation)
 
     def export_csv(self):
-        # 학생 및 평가 정보를 각각 CSV로 내보내기
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getSaveFileName(self, "학생정보 CSV 내보내기", "students.csv", "CSV Files (*.csv)", options=options)
         if file_path:
             try:
-                # 학생 정보 내보내기
                 self.cursor.execute('SELECT student_number, name, created_at, last_modified FROM students ORDER BY student_number')
                 students = self.cursor.fetchall()
                 with open(file_path, 'w', newline='', encoding='utf-8-sig') as f:
                     writer = csv.writer(f)
-                    writer.writerow(["학번", "이름", "등록일", "최근평가일"])
+                    writer.writerow(STUDENT_CSV_HEADER)
                     writer.writerows(students)
-                # 평가 정보도 같은 경로에 _evaluations.csv로 저장
                 eval_path = file_path.replace('.csv', '_evaluations.csv')
                 self.cursor.execute('''SELECT s.student_number, s.name, e.subject, e.score, e.evaluation_date, e.notes FROM students s LEFT JOIN evaluations e ON s.id = e.student_id ORDER BY s.student_number, e.evaluation_date DESC''')
                 evals = self.cursor.fetchall()
                 with open(eval_path, 'w', newline='', encoding='utf-8-sig') as f:
                     writer = csv.writer(f)
-                    writer.writerow(["학번", "이름", "과목", "점수", "평가일", "비고"])
+                    writer.writerow(EVAL_CSV_HEADER)
                     writer.writerows(evals)
                 QMessageBox.information(self, "성공", f"학생정보와 평가정보가 CSV로 저장되었습니다.\n\n학생정보: {file_path}\n평가정보: {eval_path}")
             except Exception as e:
+                self.conn.rollback()
                 QMessageBox.critical(self, "오류", f"CSV 내보내기 중 오류 발생: {str(e)}")
 
     def import_csv(self):
-        # 학생 및 평가 정보를 CSV에서 불러오기
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(self, "학생정보 CSV 불러오기", "", "CSV Files (*.csv)", options=options)
         if file_path:
             try:
-                # 학생 정보 불러오기
                 with open(file_path, 'r', encoding='utf-8-sig') as f:
                     reader = csv.DictReader(f)
                     students = list(reader)
-                # 평가 정보는 같은 경로의 _evaluations.csv에서 불러옴
+                # 컬럼 검증
+                if reader.fieldnames != STUDENT_CSV_HEADER:
+                    QMessageBox.critical(self, "오류", f"학생정보 CSV의 컬럼이 올바르지 않습니다.\n필요: {STUDENT_CSV_HEADER}\n입력: {reader.fieldnames}")
+                    return
                 eval_path = file_path.replace('.csv', '_evaluations.csv')
                 evals = []
                 try:
                     with open(eval_path, 'r', encoding='utf-8-sig') as f:
                         eval_reader = csv.DictReader(f)
                         evals = list(eval_reader)
+                    if eval_reader.fieldnames != EVAL_CSV_HEADER:
+                        QMessageBox.critical(self, "오류", f"평가정보 CSV의 컬럼이 올바르지 않습니다.\n필요: {EVAL_CSV_HEADER}\n입력: {eval_reader.fieldnames}")
+                        return
                 except FileNotFoundError:
                     pass
-                # 기존 데이터 삭제
                 self.cursor.execute('DELETE FROM evaluations')
                 self.cursor.execute('DELETE FROM students')
-                # 학생 정보 삽입
                 for stu in students:
                     self.cursor.execute('INSERT INTO students (student_number, name, created_at, last_modified) VALUES (?, ?, ?, ?)',
                         (stu["학번"], stu["이름"], stu["등록일"], stu["최근평가일"]))
-                # 평가 정보 삽입
                 for ev in evals:
-                    # 학생 ID 찾기
                     self.cursor.execute('SELECT id FROM students WHERE student_number=?', (ev["학번"],))
                     res = self.cursor.fetchone()
                     if res:
                         student_id = res[0]
+                        # 점수 float 변환, 날짜 검증
+                        score = None
+                        try:
+                            score = float(ev["점수"]) if ev["점수"] else None
+                        except ValueError:
+                            pass
+                        eval_date = ev["평가일"] if is_valid_date(ev["평가일"]) else None
                         self.cursor.execute('INSERT INTO evaluations (student_id, subject, score, evaluation_date, notes) VALUES (?, ?, ?, ?, ?)',
-                            (student_id, ev["과목"], ev["점수"] if ev["점수"] else None, ev["평가일"], ev["비고"]))
+                            (student_id, ev["과목"], score, eval_date, ev["비고"]))
                 self.conn.commit()
                 self.load_students()
                 self.eval_table.setRowCount(0)
                 QMessageBox.information(self, "성공", "CSV에서 학생정보와 평가정보를 불러왔습니다.")
             except Exception as e:
+                self.conn.rollback()
                 QMessageBox.critical(self, "오류", f"CSV 불러오기 중 오류 발생: {str(e)}")
 
     def load_students(self):
@@ -217,6 +241,9 @@ class StudentDatabase(QWidget):
             self.name_edit.clear()
         except sqlite3.IntegrityError:
             QMessageBox.warning(self, "오류", "이미 존재하는 학번입니다.")
+        except Exception as e:
+            self.conn.rollback()
+            QMessageBox.critical(self, "오류", f"학생 추가 중 오류: {str(e)}")
 
     def update_student(self):
         if not hasattr(self, 'selected_student_number'):
@@ -234,17 +261,26 @@ class StudentDatabase(QWidget):
             self.load_students()
         except sqlite3.IntegrityError:
             QMessageBox.warning(self, "오류", "이미 존재하는 학번입니다.")
+        except Exception as e:
+            self.conn.rollback()
+            QMessageBox.critical(self, "오류", f"학생 정보 수정 중 오류: {str(e)}")
 
     def delete_student(self):
         if not hasattr(self, 'selected_student_number'):
             QMessageBox.warning(self, "경고", "삭제할 학생을 선택해주세요.")
             return
-        self.cursor.execute('DELETE FROM students WHERE student_number=?', (self.selected_student_number,))
-        self.conn.commit()
-        self.load_students()
-        self.eval_table.setRowCount(0)
-        self.num_edit.clear()
-        self.name_edit.clear()
+        try:
+            self.cursor.execute('DELETE FROM students WHERE student_number=?', (self.selected_student_number,))
+            self.conn.commit()
+            self.load_students()
+            self.eval_table.setRowCount(0)
+            self.num_edit.clear()
+            self.name_edit.clear()
+            if hasattr(self, 'selected_student_number'):
+                del self.selected_student_number
+        except Exception as e:
+            self.conn.rollback()
+            QMessageBox.critical(self, "오류", f"학생 삭제 중 오류: {str(e)}")
 
     def load_evaluations(self):
         self.eval_table.setRowCount(0)
@@ -276,21 +312,28 @@ class StudentDatabase(QWidget):
         except ValueError:
             QMessageBox.warning(self, "오류", "점수는 숫자로 입력해주세요.")
             return
-        self.cursor.execute('SELECT id FROM students WHERE student_number=?', (self.selected_student_number,))
-        result = self.cursor.fetchone()
-        if not result:
+        if not is_valid_date(eval_date):
+            QMessageBox.warning(self, "오류", "평가일은 YYYY-MM-DD 형식이어야 합니다.")
             return
-        student_id = result[0]
-        self.cursor.execute('INSERT INTO evaluations (student_id, subject, score, evaluation_date, notes) VALUES (?, ?, ?, ?, ?)', (student_id, subject, score_val, eval_date, notes))
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        self.cursor.execute('UPDATE students SET last_modified=? WHERE id=?', (now, student_id))
-        self.conn.commit()
-        self.load_evaluations()
-        self.load_students()
-        self.subject_edit.clear()
-        self.score_edit.clear()
-        self.eval_date_edit.setText(datetime.now().strftime('%Y-%m-%d'))
-        self.notes_edit.clear()
+        try:
+            self.cursor.execute('SELECT id FROM students WHERE student_number=?', (self.selected_student_number,))
+            result = self.cursor.fetchone()
+            if not result:
+                return
+            student_id = result[0]
+            self.cursor.execute('INSERT INTO evaluations (student_id, subject, score, evaluation_date, notes) VALUES (?, ?, ?, ?, ?)', (student_id, subject, score_val, eval_date, notes))
+            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            self.cursor.execute('UPDATE students SET last_modified=? WHERE id=?', (now, student_id))
+            self.conn.commit()
+            self.load_evaluations()
+            self.load_students()
+            self.subject_edit.clear()
+            self.score_edit.clear()
+            self.eval_date_edit.setText(datetime.now().strftime('%Y-%m-%d'))
+            self.notes_edit.clear()
+        except Exception as e:
+            self.conn.rollback()
+            QMessageBox.critical(self, "오류", f"평가 추가 중 오류: {str(e)}")
 
     def delete_evaluation(self):
         selected = self.eval_table.currentRow()
