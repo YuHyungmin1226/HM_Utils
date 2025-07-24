@@ -31,11 +31,36 @@ class StudentDatabase(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("학생 관리 시스템 (PyQt5)")
-        self.resize(1100, 650)
+        # 해상도의 80% 크기로, 화면 중앙에 위치
+        screen = QApplication.primaryScreen()
+        screen_geometry = screen.availableGeometry()
+        screen_width = screen_geometry.width()
+        screen_height = screen_geometry.height()
+        win_width = int(screen_width * 0.8)
+        win_height = int(screen_height * 0.8)
+        self.resize(win_width, win_height)
+        # 중앙 정렬
+        x = screen_geometry.x() + (screen_width - win_width) // 2
+        y = screen_geometry.y() + (screen_height - win_height) // 2
+        self.move(x, y)
+
+        # 폰트 크기 비율로 동적 조정 (기본 14, FHD 기준 1080px에서 14)
+        base_height = 1080
+        base_font_size = 14
+        # 폰트 크기 비율을 0.8배로 줄임
+        font_size = max(10, int(base_font_size * (win_height / base_height) * 0.8))
+        from PyQt5.QtGui import QFont
+        app_font = QFont()
+        app_font.setPointSize(font_size)
+        QApplication.setFont(app_font)
         self.conn = sqlite3.connect('student.db')
         self.cursor = self.conn.cursor()
         self.init_database()
-        self.init_ui()
+        # 폰트 크기 비율로 동적 조정 (기본 14, FHD 기준 1080px에서 14)
+        base_height = 1080
+        base_font_size = 14
+        font_size = max(10, int(base_font_size * (win_height / base_height) * 0.8))
+        self.init_ui(font_size)
         self.load_students()
 
     def init_database(self):
@@ -61,14 +86,21 @@ class StudentDatabase(QWidget):
         ''')
         self.conn.commit()
 
-    def init_ui(self):
+    def init_ui(self, font_size):
         main_layout = QVBoxLayout()
 
-        # 메뉴바 추가
+        # 메뉴바 추가 (폰트 크기 0.5배 적용)
+        from PyQt5.QtGui import QFont
         self.menubar = QMenuBar(self)
+        menubar_font = QFont()
+        menubar_font.setPointSizeF(font_size * 0.6)
+        self.menubar.setFont(menubar_font)
         file_menu = QMenu("파일", self)
+        file_menu.setFont(menubar_font)
         export_csv_action = QAction("CSV 내보내기", self)
+        export_csv_action.setFont(menubar_font)
         import_csv_action = QAction("CSV 불러오기", self)
+        import_csv_action.setFont(menubar_font)
         export_csv_action.triggered.connect(self.export_csv)
         import_csv_action.triggered.connect(self.import_csv)
         file_menu.addAction(export_csv_action)
@@ -77,7 +109,7 @@ class StudentDatabase(QWidget):
         main_layout.setMenuBar(self.menubar)
 
         # 학생 정보 입력
-        input_group = QGroupBox("학생 정보 입력")
+        input_group = QGroupBox("학생 정보")
         input_layout = QHBoxLayout()
         self.num_edit = QLineEdit()
         self.name_edit = QLineEdit()
@@ -85,11 +117,15 @@ class StudentDatabase(QWidget):
         input_layout.addWidget(self.num_edit)
         input_layout.addWidget(QLabel("이름:"))
         input_layout.addWidget(self.name_edit)
+        input_layout.addStretch(1)  # 입력창 좌측 정렬
         self.add_btn = QPushButton("추가")
-        self.update_btn = QPushButton("수정")
         self.delete_btn = QPushButton("삭제")
+        # 버튼 가로폭을 2배로 늘림
+        # 평가 버튼 가로폭을 기준으로 학생 정보 버튼 가로폭도 동일하게 맞춤
+        eval_btn_width = QPushButton("평가 추가").sizeHint().width() * 2
+        for btn in [self.add_btn, self.delete_btn]:
+            btn.setFixedWidth(eval_btn_width)
         input_layout.addWidget(self.add_btn)
-        input_layout.addWidget(self.update_btn)
         input_layout.addWidget(self.delete_btn)
         input_group.setLayout(input_layout)
         main_layout.addWidget(input_group)
@@ -106,7 +142,15 @@ class StudentDatabase(QWidget):
         self.subject_edit = QLineEdit()
         self.score_edit = QLineEdit()
         self.eval_date_edit = QLineEdit(datetime.now().strftime('%Y-%m-%d'))
+        # 학번 입력창의 가로폭과 동일하게 조정
+        num_width = self.num_edit.sizeHint().width()
+        self.subject_edit.setFixedWidth(num_width)
+        self.score_edit.setFixedWidth(num_width)
+        self.eval_date_edit.setFixedWidth(num_width)
+        from PyQt5.QtWidgets import QSizePolicy
         self.notes_edit = QLineEdit()
+        # 비고 입력창이 평가 추가/삭제 버튼 바로 옆까지 확장되도록 설정
+        self.notes_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         eval_layout.addWidget(QLabel("과목:"))
         eval_layout.addWidget(self.subject_edit)
         eval_layout.addWidget(QLabel("점수:"))
@@ -115,8 +159,13 @@ class StudentDatabase(QWidget):
         eval_layout.addWidget(self.eval_date_edit)
         eval_layout.addWidget(QLabel("비고:"))
         eval_layout.addWidget(self.notes_edit)
+        # addStretch 제거: 비고 입력창이 버튼 바로 옆까지 확장되도록
         self.eval_add_btn = QPushButton("평가 추가")
         self.eval_delete_btn = QPushButton("평가 삭제")
+        # 평가 버튼 가로폭을 2배로 늘림
+        eval_btn_width = self.eval_add_btn.sizeHint().width()
+        for btn in [self.eval_add_btn, self.eval_delete_btn]:
+            btn.setFixedWidth(eval_btn_width * 2)
         eval_layout.addWidget(self.eval_add_btn)
         eval_layout.addWidget(self.eval_delete_btn)
         eval_group.setLayout(eval_layout)
@@ -132,7 +181,6 @@ class StudentDatabase(QWidget):
 
         # 이벤트 연결
         self.add_btn.clicked.connect(self.add_student)
-        self.update_btn.clicked.connect(self.update_student)
         self.delete_btn.clicked.connect(self.delete_student)
         self.table.cellClicked.connect(self.on_student_select)
         self.eval_add_btn.clicked.connect(self.add_evaluation)
