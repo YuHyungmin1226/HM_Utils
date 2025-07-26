@@ -3,11 +3,17 @@ import yt_dlp as youtube_dl
 from pathlib import Path
 import re
 import threading
-import tkinter as tk
-from tkinter import messagebox, scrolledtext, ttk
 import platform
 import shutil
 import sys
+from ffmpeg_installer import FFmpegInstaller
+
+# PyQt5 관련 import
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
+    QTextEdit, QProgressBar, QMessageBox, QFileDialog
+)
+from PyQt5.QtCore import Qt, pyqtSignal, QObject
 
 class YouTubeDownloader:
     def __init__(self, url, status_callback=None, progress_callback=None):
@@ -18,42 +24,55 @@ class YouTubeDownloader:
         self.progress_callback = progress_callback  # 프로그레스바 콜백
 
     def validate_url(self):
-        # 기본적인 URL 형식 검사
         if not re.match(r'^(https?://)?(www\.)?(youtube\.com|youtu\.be)/', self.url):
             raise ValueError("유효하지 않은 YouTube URL입니다.")
-        
-        # URL에서 video_id 추출 시도
         video_id = None
         patterns = [
-            r'(?:v=|\/)([0-9A-Za-z_-]{11}).*',  # 일반적인 video ID
-            r'shorts\/([0-9A-Za-z_-]{11})',     # Shorts 형식
-            r'embed\/([0-9A-Za-z_-]{11})',      # Embed 형식
-            r'v\/([0-9A-Za-z_-]{11})'           # v/ 형식
+            r'(?:v=|/)([0-9A-Za-z_-]{11}).*',
+            r'shorts/([0-9A-Za-z_-]{11})',
+            r'embed/([0-9A-Za-z_-]{11})',
+            r'v/([0-9A-Za-z_-]{11})'
         ]
-        
         for pattern in patterns:
             match = re.search(pattern, self.url)
             if match:
                 video_id = match.group(1)
                 break
-        
         if not video_id:
             raise ValueError("YouTube 영상 ID를 찾을 수 없습니다.")
-        
-        # 표준 URL 형식으로 변환
         self.url = f"https://www.youtube.com/watch?v={video_id}"
 
     def get_ffmpeg_path(self):
-        # 시스템에 설치된 ffmpeg만 탐색
-        ffmpeg_path = shutil.which("ffmpeg")
-        if not ffmpeg_path and platform.system() == "Windows":
+        # Windows에서 ffmpeg.exe 찾기
+        if platform.system() == "Windows":
             ffmpeg_path = shutil.which("ffmpeg.exe")
+            if not ffmpeg_path:
+                ffmpeg_path = shutil.which("ffmpeg")
+        else:
+            # Unix 계열에서 ffmpeg 찾기
+            ffmpeg_path = shutil.which("ffmpeg")
+            
+        # 추가 경로 확인 (macOS Homebrew 등)
         if not ffmpeg_path and platform.system() == "Darwin":
-            # macOS Homebrew 기본 경로도 시도
             if os.path.exists("/opt/homebrew/bin/ffmpeg"):
                 ffmpeg_path = "/opt/homebrew/bin/ffmpeg"
             elif os.path.exists("/usr/local/bin/ffmpeg"):
                 ffmpeg_path = "/usr/local/bin/ffmpeg"
+                
+        # Windows에서 추가 경로 확인
+        if not ffmpeg_path and platform.system() == "Windows":
+            # 일반적인 설치 경로들 확인
+            possible_paths = [
+                "C:\\ffmpeg\\bin\\ffmpeg.exe",
+                "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe",
+                "C:\\Program Files (x86)\\ffmpeg\\bin\\ffmpeg.exe",
+                str(Path.home() / "ffmpeg" / "bin" / "ffmpeg.exe")
+            ]
+            for path in possible_paths:
+                if os.path.exists(path):
+                    ffmpeg_path = path
+                    break
+                    
         return ffmpeg_path
 
     def download_video(self):
@@ -66,9 +85,9 @@ class YouTubeDownloader:
         ffmpeg_path = self.get_ffmpeg_path()
         if not ffmpeg_path:
             if self.status_callback:
-                self.status_callback("\n다운로드 오류: ffmpeg가 설치되어 있지 않습니다.\nhttps://ffmpeg.org/download.html 에서 설치 후 다시 시도하세요.")
+                self.status_callback("\nFFmpeg가 설치되어 있지 않습니다.")
+                self.status_callback("FFmpeg 설치 버튼을 눌러 설치 후 다운로드 버튼을 다시 눌러주세요.")
             return
-        # Videos 폴더 없으면 생성
         videos_dir = Path.home() / "Videos"
         videos_dir.mkdir(parents=True, exist_ok=True)
         ydl_opts = {
@@ -107,71 +126,177 @@ class YouTubeDownloader:
                 status = f"{percent_str} of {d.get('_total_bytes_str', '')} at {d.get('_speed_str', '')} ETA {d.get('_eta_str', '')}"
                 self.status_callback(status, replace=True)
 
-class YouTubeDownloaderGUI:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("YouTube 영상 다운로드 도구")
-        self.root.geometry("700x350")
-        self.root.resizable(False, False)
-        self.create_widgets()
+def check_ffmpeg_installed():
+    """FFmpeg 설치 여부를 다양한 경로와 환경변수로 확인"""
+    import subprocess
+    
+    # 디버깅을 위한 로그 함수
+    def debug_log(msg):
+        print(f"[FFmpeg Debug] {msg}")
+    
+    debug_log("FFmpeg 감지 시작...")
+    
+    # 1. shutil.which() 사용
+    if platform.system() == "Windows":
+        ffmpeg_path = shutil.which("ffmpeg.exe")
+        debug_log(f"shutil.which('ffmpeg.exe'): {ffmpeg_path}")
+        if not ffmpeg_path:
+            ffmpeg_path = shutil.which("ffmpeg")
+            debug_log(f"shutil.which('ffmpeg'): {ffmpeg_path}")
+    else:
+        ffmpeg_path = shutil.which("ffmpeg")
+        debug_log(f"shutil.which('ffmpeg'): {ffmpeg_path}")
+    
+    # 2. macOS Homebrew 등 추가 경로
+    if not ffmpeg_path and platform.system() == "Darwin":
+        if os.path.exists("/opt/homebrew/bin/ffmpeg"):
+            ffmpeg_path = "/opt/homebrew/bin/ffmpeg"
+            debug_log(f"Found in /opt/homebrew/bin/ffmpeg")
+        elif os.path.exists("/usr/local/bin/ffmpeg"):
+            ffmpeg_path = "/usr/local/bin/ffmpeg"
+            debug_log(f"Found in /usr/local/bin/ffmpeg")
+    
+    # 3. Windows 일반 경로
+    if not ffmpeg_path and platform.system() == "Windows":
+        possible_paths = [
+            "C:\\ffmpeg\\bin\\ffmpeg.exe",
+            "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe",
+            "C:\\Program Files (x86)\\ffmpeg\\bin\\ffmpeg.exe",
+            str(Path.home() / "ffmpeg" / "bin" / "ffmpeg.exe"),
+            "C:\\ffmpeg\\ffmpeg.exe",
+            "C:\\Program Files\\ffmpeg\\ffmpeg.exe",
+            "C:\\Program Files (x86)\\ffmpeg\\ffmpeg.exe"
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                ffmpeg_path = path
+                debug_log(f"Found in: {path}")
+                break
+    
+    # 4. 실제 실행 테스트
+    if ffmpeg_path:
+        try:
+            debug_log(f"Testing execution: {ffmpeg_path}")
+            result = subprocess.run([ffmpeg_path, "-version"], capture_output=True, text=True, timeout=3)
+            if result.returncode == 0:
+                debug_log(f"FFmpeg 실행 성공: {ffmpeg_path}")
+                return ffmpeg_path
+            else:
+                debug_log(f"FFmpeg 실행 실패 (return code: {result.returncode})")
+        except Exception as e:
+            debug_log(f"FFmpeg 실행 예외: {e}")
+    
+    # 5. 환경변수 PATH 직접 탐색
+    debug_log("PATH 환경변수 직접 탐색 시작...")
+    path_dirs = os.environ.get("PATH", "").split(os.pathsep)
+    debug_log(f"PATH 디렉토리 수: {len(path_dirs)}")
+    
+    for p in path_dirs:
+        if not p.strip():
+            continue
+        candidate = os.path.join(p, "ffmpeg.exe" if platform.system() == "Windows" else "ffmpeg")
+        if os.path.exists(candidate):
+            debug_log(f"Found candidate: {candidate}")
+            try:
+                result = subprocess.run([candidate, "-version"], capture_output=True, text=True, timeout=3)
+                if result.returncode == 0:
+                    debug_log(f"FFmpeg 실행 성공: {candidate}")
+                    return candidate
+                else:
+                    debug_log(f"FFmpeg 실행 실패: {candidate} (return code: {result.returncode})")
+            except Exception as e:
+                debug_log(f"FFmpeg 실행 예외: {candidate} - {e}")
+    
+    debug_log("FFmpeg를 찾을 수 없습니다.")
+    return None
 
-    def create_widgets(self):
-        ENTRY_WIDTH = 85
-        BUTTON_WIDTH = 40
-        LABEL_WIDTH = 85
-        # URL 입력
-        tk.Label(self.root, text="YouTube 링크 입력:", anchor='w').pack(pady=(15, 0), fill='x')
-        self.url_entry = tk.Entry(self.root, width=ENTRY_WIDTH, font=('Arial', 12))
-        self.url_entry.pack(pady=5, fill='x', padx=10)
-        self.url_entry.focus()
-        # 붙여넣기 버튼
-        paste_btn = tk.Button(self.root, text="링크 붙여넣기", command=self.on_paste_link, width=BUTTON_WIDTH)
-        paste_btn.pack(pady=(5, 0))
-        # 다운로드 버튼
-        self.download_btn = tk.Button(self.root, text="영상 다운로드", command=self.on_download, width=BUTTON_WIDTH)
-        self.download_btn.pack(pady=5)
-        # 진행상황 Progressbar
-        self.progress = ttk.Progressbar(self.root, orient=tk.HORIZONTAL, length=600, mode='determinate')
-        self.progress.pack(pady=5, padx=10)
-        # 상태 출력창
-        self.status_text = scrolledtext.ScrolledText(self.root, width=ENTRY_WIDTH, height=6, wrap=tk.WORD, font=('Arial', 12))
-        self.status_text.pack(pady=10, fill='x', padx=10)
-        self.status_text.insert(tk.END, "YouTube 링크를 입력하고 다운로드 버튼을 누르세요.\n")
-        self.status_text.config(state=tk.DISABLED)
-        # 저장 폴더 열기 버튼
-        self.open_folder_btn = tk.Button(self.root, text="저장 폴더 열기", command=self.on_open_folder, width=BUTTON_WIDTH)
-        self.open_folder_btn.pack(pady=(0, 10))
+# 기존 get_ffmpeg_path를 check_ffmpeg_installed로 대체
+YouTubeDownloader.get_ffmpeg_path = staticmethod(check_ffmpeg_installed)
+
+# PyQt5용 시그널 클래스
+class SignalProxy(QObject):
+    status_signal = pyqtSignal(str, bool)
+    progress_signal = pyqtSignal(float)
+
+class YouTubeDownloaderWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("YouTube 영상 다운로드 도구 (PyQt5)")
+        self.setFixedSize(700, 400)
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        self.layout = QVBoxLayout(self.central_widget)
+
+        # 입력창
+        self.url_label = QLabel("YouTube 링크 입력:")
+        self.url_edit = QLineEdit()
+        self.url_edit.setPlaceholderText("https://www.youtube.com/watch?v=...")
+        self.layout.addWidget(self.url_label)
+        self.layout.addWidget(self.url_edit)
+
+        # 버튼들
+        btn_layout = QHBoxLayout()
+        self.paste_btn = QPushButton("링크 붙여넣기")
+        self.download_btn = QPushButton("영상 다운로드")
+        self.ffmpeg_btn = QPushButton("FFmpeg 설치")
+        self.open_folder_btn = QPushButton("저장 폴더 열기")
+        btn_layout.addWidget(self.paste_btn)
+        btn_layout.addWidget(self.download_btn)
+        btn_layout.addWidget(self.ffmpeg_btn)
+        btn_layout.addWidget(self.open_folder_btn)
+        self.layout.addLayout(btn_layout)
+
+        # 진행바
+        self.progress = QProgressBar()
+        self.progress.setRange(0, 100)
+        self.layout.addWidget(self.progress)
+
+        # 상태창
+        self.status_text = QTextEdit()
+        self.status_text.setReadOnly(True)
+        self.layout.addWidget(self.status_text)
+
+        # 시그널 프록시 - 메인 스레드에서 생성
+        self.signals = SignalProxy()
+        self.signals.status_signal.connect(self.set_status)
+        self.signals.progress_signal.connect(self.set_progress)
+
+        # 이벤트 연결
+        self.paste_btn.clicked.connect(self.on_paste_link)
+        self.download_btn.clicked.connect(self.on_download)
+        self.ffmpeg_btn.clicked.connect(self.on_install_ffmpeg)
+        self.open_folder_btn.clicked.connect(self.on_open_folder)
+
+        self.set_status("YouTube 링크를 입력하고 다운로드 버튼을 누르세요.")
 
     def set_status(self, msg, replace=False):
-        self.status_text.config(state=tk.NORMAL)
         if replace:
-            self.status_text.delete('end-2l', 'end-1l')  # 마지막 줄만 교체
-        self.status_text.insert(tk.END, msg + '\n')
-        self.status_text.see(tk.END)
-        self.status_text.config(state=tk.DISABLED)
-        self.root.update()
+            cursor = self.status_text.textCursor()
+            cursor.movePosition(cursor.End)
+            cursor.select(cursor.BlockUnderCursor)
+            cursor.removeSelectedText()
+            cursor.deletePreviousChar()
+            self.status_text.setTextCursor(cursor)
+        self.status_text.append(msg)
+        self.status_text.moveCursor(self.status_text.textCursor().End)
 
     def set_progress(self, percent):
-        self.progress['value'] = percent
-        self.root.update_idletasks()
+        self.progress.setValue(int(percent))
 
     def on_paste_link(self):
-        try:
-            clipboard = self.root.clipboard_get()
-            self.url_entry.delete(0, tk.END)
-            self.url_entry.insert(0, clipboard)
-        except Exception:
-            messagebox.showwarning("클립보드 오류", "클립보드에서 텍스트를 읽을 수 없습니다.")
+        clipboard = QApplication.clipboard()
+        self.url_edit.setText(clipboard.text())
 
     def on_download(self):
-        url = self.url_entry.get().strip()
+        url = self.url_edit.text().strip()
         if not url:
-            messagebox.showwarning("입력 오류", "YouTube 링크를 입력하세요.")
+            QMessageBox.warning(self, "입력 오류", "YouTube 링크를 입력하세요.")
             return
-        self.set_status("다운로드를 시작합니다...", replace=False)
-        self.download_btn.config(state=tk.DISABLED)
-        self.progress['value'] = 0
-        threading.Thread(target=self.download_thread, args=(url,)).start()
+        self.set_status("다운로드를 시작합니다...")
+        self.download_btn.setEnabled(False)
+        self.progress.setValue(0)
+        # 스레드로 다운로드 실행
+        threading.Thread(target=self.download_thread, args=(url,), daemon=True).start()
 
     def download_thread(self, url):
         try:
@@ -182,13 +307,57 @@ class YouTubeDownloaderGUI:
             )
             downloader.download_video()
         finally:
-            self.download_btn.config(state=tk.NORMAL)
+            self.download_btn.setEnabled(True)
 
     def thread_safe_status(self, msg, replace=False):
-        self.root.after(0, self.set_status, msg, replace)
+        self.signals.status_signal.emit(msg, replace)
 
     def thread_safe_progress(self, percent):
-        self.root.after(0, self.set_progress, percent)
+        self.signals.progress_signal.emit(percent)
+
+    def on_install_ffmpeg(self):
+        ffmpeg_path = check_ffmpeg_installed()
+        if ffmpeg_path:
+            QMessageBox.information(self, "안내", f"이미 FFmpeg가 설치되어 있습니다:\n{ffmpeg_path}")
+            return
+        # 디버깅 정보 출력
+        debug_info = f"PATH: {os.environ.get('PATH')}\n"
+        debug_info += f"홈 디렉토리: {Path.home()}\n"
+        debug_info += "일반 경로 체크 결과: "
+        if platform.system() == "Windows":
+            debug_info += str([p for p in [
+                'C:\\ffmpeg\\bin\\ffmpeg.exe',
+                'C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe',
+                'C:\\Program Files (x86)\\ffmpeg\\bin\\ffmpeg.exe',
+                str(Path.home() / 'ffmpeg' / 'bin' / 'ffmpeg.exe')
+            ] if os.path.exists(p)])
+        elif platform.system() == "Darwin":
+            debug_info += str([p for p in [
+                '/opt/homebrew/bin/ffmpeg',
+                '/usr/local/bin/ffmpeg'
+            ] if os.path.exists(p)])
+        else:
+            debug_info += "(리눅스는 기본적으로 which만 사용)"
+        self.set_status(f"[FFmpeg 디버깅 정보]\n{debug_info}")
+        self.set_status("FFmpeg 설치를 시작합니다...")
+        self.ffmpeg_btn.setEnabled(False)
+        self.progress.setValue(0)
+        def install_thread():
+            try:
+                installer = FFmpegInstaller(
+                    status_callback=self.thread_safe_status,
+                    progress_callback=self.thread_safe_progress
+                )
+                success = installer.install_ffmpeg()
+                if success:
+                    self.set_status("FFmpeg 설치가 완료되었습니다!")
+                    self.set_status("⚠️  중요: PATH 환경변수가 적용되도록 PC를 재시작한 후 다운로드를 시도하세요.")
+                    print("[FFmpeg 설치 완료] PC를 재시작하여 PATH 환경변수를 적용하세요.")
+                else:
+                    self.set_status("FFmpeg 설치에 실패했습니다.")
+            finally:
+                self.ffmpeg_btn.setEnabled(True)
+        threading.Thread(target=install_thread, daemon=True).start()
 
     def on_open_folder(self):
         folder = str(Path.home() / "Videos")
@@ -200,12 +369,14 @@ class YouTubeDownloaderGUI:
             else:
                 os.system(f'xdg-open "{folder}"')
         else:
-            messagebox.showinfo("안내", "Videos 폴더가 존재하지 않습니다.")
+            QMessageBox.information(self, "안내", "Videos 폴더가 존재하지 않습니다.")
+
 
 def main():
-    root = tk.Tk()
-    app = YouTubeDownloaderGUI(root)
-    root.mainloop()
+    app = QApplication(sys.argv)
+    win = YouTubeDownloaderWindow()
+    win.show()
+    sys.exit(app.exec_())
 
 if __name__ == "__main__":
     main()

@@ -5,10 +5,8 @@ SpeechRecognition>=3.8.1
 pydub>=0.25.1
 whisper>=1.0.0
 openai-whisper
-# FFmpeg 외부 요구사항:
-# macOS: brew install ffmpeg
-# Windows: https://ffmpeg.org/download.html에서 다운로드
-# Linux: sudo apt install ffmpeg 또는 sudo yum install ffmpeg
+requests>=2.28.2
+# FFmpeg는 자동으로 설치됩니다 (ffmpeg_installer.py 사용)
 
 # Google Speech Recognition API를 사용하려면 인터넷 연결이 필요합니다.
 # Whisper 모델은 처음 사용 시 다운로드됩니다. 
