@@ -8,34 +8,24 @@
 - **`001_text_tools/`**: 텍스트 처리 도구
   - `SimpleNotepad.py` - 고급 메모장 애플리케이션 (67KB, 1413줄)
 
-### 📊 데이터 도구
-- **`002_data_tools/`**: 데이터 수집 및 분석 도구
-  - `streamlit_dashboard.py` - 종합 데이터 대시보드 (멜론/벅스 차트, 도서 순위, 날씨, 뉴스)
-  - `daily_info.py` - 일일 정보 수집기 (13KB, 327줄)
-  - `daily_stock_recommendation.py` - 주식 추천 시스템 (6.4KB, 161줄)
-  - `melon_daily_chart.py`, `bugs_daily_chart.py` - 음원 차트 수집
-  - `book_rank.py` - 도서 베스트셀러 순위
-  - `NewsPost.py`, `NewsAlert.py` - 뉴스 수집 및 알림
-  - `Weather_review_auto.py` - 날씨 정보 자동 수집
-
 ### ⏰ 시간 도구
-- **`003_time_tools/`**: 시간 관련 도구
+- **`002_time_tools/`**: 시간 관련 도구
   - `Timer.py` - 타이머 애플리케이션 (6KB, 148줄)
 
 ### 🛠️ 유틸리티
-- **`004_utils/`**: 개발 및 유지보수 도구
+- **`003_utils/`**: 개발 및 유지보수 도구
   - `cleanup.py` - 프로젝트 폴더 정리 도구 (4.8KB, 124줄)
   - `download_nltk_data.py` - NLTK 데이터 다운로더
   - `spec_files/` - PyInstaller 스펙 파일 모음
 
 ### 🎮 게임 프로젝트
-- **`005_game_projects/`**: 게임 개발 프로젝트
+- **`004_game_projects/`**: 게임 개발 프로젝트
   - `galaga.py` - 갤러그 스타일 게임 (41KB, 1008줄)
   - `simple_tetris.py` - 테트리스 게임 (24KB, 629줄)
   - `tetris_scores.json`, `galaga.json` - 게임 점수 저장 파일
 
 ### 🎓 학교 도구
-- **`006_school_tools/`**: 교육 관련 도구
+- **`005_school_tools/`**: 교육 관련 도구
   - `student_database.py` - 학생 데이터베이스 관리 시스템 (20KB, 407줄)
 
 ## 🚀 설치 및 실행
@@ -56,21 +46,18 @@ pip install -r requirements.txt
 # 텍스트 도구 실행
 python 001_text_tools/SimpleNotepad.py
 
-# 데이터 대시보드 실행
-streamlit run 002_data_tools/streamlit_dashboard.py
-
 # 타이머 실행
-python 003_time_tools/Timer.py
+python 002_time_tools/Timer.py
 
 # 유틸리티 실행
-python 004_utils/cleanup.py
+python 003_utils/cleanup.py
 
 # 게임 실행
-python 005_game_projects/galaga.py
-python 005_game_projects/simple_tetris.py
+python 004_game_projects/galaga.py
+python 004_game_projects/simple_tetris.py
 
 # 학생 데이터베이스 실행
-python 006_school_tools/student_database.py
+python 005_school_tools/student_database.py
 ```
 
 ## 🏗️ 애플리케이션 빌드
@@ -90,7 +77,7 @@ pyinstaller --onefile --windowed --name "프로그램명" 경로/프로그램명
 프로젝트 폴더에 임시 파일이나 캐시가 누적되면 정리 도구를 사용하세요:
 
 ```bash
-python 004_utils/cleanup.py
+python 003_utils/cleanup.py
 ```
 
 **정리 대상:**
@@ -110,6 +97,7 @@ python 004_utils/cleanup.py
 일부 프로젝트는 별도의 전용 레포지토리로 분리되었습니다:
 
 - 🎵 **코드 진행 생성기**: [chordgenerator](https://github.com/YuHyungmin1226/chordgenerator)
+- 📊 **일일 정보 대시보드**: [dailyinfo](https://github.com/YuHyungmin1226/dailyinfo)
 - 🖼️ **이미지 뷰어**: [imageviewer](https://github.com/YuHyungmin1226/imageviewer)
 - 📺 **유튜브 다운로더**: [youtube_downloader](https://github.com/YuHyungmin1226/youtube_downloader)
 - 🎤 **음성 텍스트 변환**: [speechTotext](https://github.com/YuHyungmin1226/speechTotext)
