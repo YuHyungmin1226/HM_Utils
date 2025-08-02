@@ -22,11 +22,12 @@ HM_Utils/
 ## 🎯 주요 기능
 
 ### 📝 텍스트 도구 (`001_text_tools/`)
-- **SimpleNotepad.py** (67KB, 1,413줄) - 고급 메모장 애플리케이션
-  - ✨ **다크모드/라이트모드** 자동 감지 및 전환
+- **SimpleNotepad** - 고급 메모장 애플리케이션
+  - ✨ **별도 저장소로 분리됨**: [SimpleNotepad](https://github.com/YuHyungmin1226/SimpleNotepad)
+  - 🎨 **다크모드/라이트모드** 자동 감지 및 전환
   - 🔍 **고급 검색 기능** (Ctrl+F, 이전/다음 찾기)
   - 💾 **자동 저장** (1분/5분/10분/30분 간격 설정)
-  - 🎨 **글꼴 크기 조정** (8pt~36pt, Ctrl++/Ctrl+-)
+  - 🎯 **글꼴 크기 조정** (8pt~36pt, Ctrl++/Ctrl+-)
   - 🔧 **시스템 기본 프로그램 등록** (.txt 파일 연결)
   - 🌐 **크로스 플랫폼 지원** (Windows, macOS, Linux)
   - 📱 **명령줄 통합** (`python SimpleNotepad.py file.txt`)
@@ -90,11 +91,14 @@ pip install -r requirements.txt
 
 #### 📝 텍스트 도구
 ```bash
+# SimpleNotepad는 별도 저장소로 분리되었습니다
+# https://github.com/YuHyungmin1226/SimpleNotepad
+
 # 고급 메모장 실행
-python 001_text_tools/SimpleNotepad.py
+python SimpleNotepad.py
 
 # 파일과 함께 실행
-python 001_text_tools/SimpleNotepad.py myfile.txt
+python SimpleNotepad.py myfile.txt
 ```
 
 #### ⏰ 시간 도구
@@ -204,8 +208,8 @@ psutil>=5.9.0
 
 ## 📊 프로젝트 통계
 
-**총 5개 카테고리, 10+ 개별 도구:**
-- 📝 **텍스트 도구**: 1개 (SimpleNotepad)
+**총 5개 카테고리, 9+ 개별 도구:**
+- 📝 **텍스트 도구**: 0개 (SimpleNotepad는 별도 저장소로 분리)
 - ⏰ **시간 도구**: 1개 (Timer)
 - 🛠️ **유틸리티**: 2개 (cleanup, download_nltk_data)
 - 🎮 **게임 프로젝트**: 2개 (Galaga, Tetris)
@@ -232,6 +236,7 @@ psutil>=5.9.0
 
 ## 🔄 최근 업데이트
 
+- ✅ **2025-01-XX**: SimpleNotepad를 별도 저장소로 분리
 - ✅ **2025-07-28**: 데이터 도구를 dailyinfo 저장소로 분리
 - ✅ **2025-07-28**: 폴더 넘버링 재정리 (001-005)
 - ✅ **2025-07-28**: README.md 완전 최신화

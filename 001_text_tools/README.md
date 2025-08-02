@@ -4,8 +4,12 @@
 
 ## 포함된 프로그램
 
-### SimpleNotepad.py
-- 간단한 메모장 애플리케이션
-- 텍스트 문서를 생성, 저장, 삭제할 수 있는 기능 제공
-- 저장된 문서는 `~/Documents/SimpleNote/` 경로에 저장됩니다
-- 실행 방법: `python SimpleNotepad.py` 
+### SimpleNotepad
+- **별도 저장소로 분리됨**: [SimpleNotepad](https://github.com/YuHyungmin1226/SimpleNotepad)
+- 고급 메모장 애플리케이션
+- 다크모드 지원, 자동 저장, 고급 검색 기능
+- 크로스 플랫폼 지원 (Windows, macOS, Linux)
+
+## 새로운 텍스트 도구 추가 예정
+
+이 폴더에 새로운 텍스트 처리 도구들을 추가할 예정입니다. 
