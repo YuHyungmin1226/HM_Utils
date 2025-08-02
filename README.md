@@ -66,7 +66,8 @@ HM_Utils/
 - **tetris_scores.json**, **galaga.json** - 게임 점수 데이터
 
 ### 🎓 학교 도구 (`005_school_tools/`)
-- **student_database.py** (20KB, 407줄) - 학생 관리 시스템
+- **Student Management** - 학생 관리 시스템
+  - ✨ **별도 저장소로 분리됨**: [Student Management](https://github.com/YuHyungmin1226/Student_Management)
   - 👥 **학생 정보 관리** (학번, 이름, 등록일)
   - 📊 **평가 기록 관리** (과목, 점수, 평가일)
   - 💾 **SQLite 데이터베이스** 사용
@@ -127,8 +128,11 @@ python 004_game_projects/simple_tetris.py
 
 #### 🎓 학교 도구
 ```bash
+# Student Management는 별도 저장소로 분리되었습니다
+# https://github.com/YuHyungmin1226/Student_Management
+
 # 학생 관리 시스템
-python 005_school_tools/student_database.py
+python student_database.py
 ```
 
 ## 🏗️ 애플리케이션 빌드
@@ -208,12 +212,12 @@ psutil>=5.9.0
 
 ## 📊 프로젝트 통계
 
-**총 5개 카테고리, 9+ 개별 도구:**
+**총 5개 카테고리, 8+ 개별 도구:**
 - 📝 **텍스트 도구**: 0개 (SimpleNotepad는 별도 저장소로 분리)
 - ⏰ **시간 도구**: 1개 (Timer)
 - 🛠️ **유틸리티**: 2개 (cleanup, download_nltk_data)
 - 🎮 **게임 프로젝트**: 2개 (Galaga, Tetris)
-- 🎓 **학교 도구**: 1개 (Student Database)
+- 🎓 **학교 도구**: 0개 (Student Management는 별도 저장소로 분리)
 
 **총 코드 라인**: 약 3,500+ 줄
 **총 파일 크기**: 약 160KB+
@@ -236,6 +240,7 @@ psutil>=5.9.0
 
 ## 🔄 최근 업데이트
 
+- ✅ **2025-01-XX**: Student Management를 별도 저장소로 분리
 - ✅ **2025-01-XX**: SimpleNotepad를 별도 저장소로 분리
 - ✅ **2025-07-28**: 데이터 도구를 dailyinfo 저장소로 분리
 - ✅ **2025-07-28**: 폴더 넘버링 재정리 (001-005)
